@@ -1,0 +1,12 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.gradle.enabled": false,
+    "java.project.sourcePaths": [
+        "mobile/android/app/src/main/java"
+    ],
+    "java.project.referencedLibraries": [
+        "/opt/android-sdk/platforms/android-35/android.jar",
+        "mobile/node_modules/@capacitor/android/capacitor/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar",
+        "mobile/android/capacitor-cordova-android-plugins/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar"
+    ]
+}

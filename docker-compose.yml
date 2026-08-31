@@ -1,0 +1,14 @@
+services:
+  wemo-manager:
+    build: .
+    image: wemo-manager:latest
+    container_name: wemo-manager
+    # Required for device callbacks.
+    network_mode: host
+    volumes:
+      - ./data:/data
+    # Site-specific secrets go in this untracked, deployment-only file.
+    env_file:
+      - path: ./.env.local
+        required: false
+    restart: unless-stopped

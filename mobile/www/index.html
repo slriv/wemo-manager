@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>WeMo Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>WeMo Manager</h1>
+  </header>
+
+  <main>
+    <details id="settings-panel">
+      <summary>Server settings</summary>
+      <p class="hint">
+        Hostname or IP address of the machine running WeMo Manager — port
+        <code>8000</code> is assumed. A hostname is replaced with its IP address once
+        connected, so setup keeps working when this phone has no DNS.
+      </p>
+      <div class="field">
+        <label for="server-host">Server hostname or IP</label>
+        <input type="text" id="server-host" placeholder="wemo.local or 10.0.0.90"
+               autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="button-row">
+        <button type="button" id="settings-save">Save and test</button>
+      </div>
+      <p id="settings-status" class="hint"></p>
+    </details>
+
+    <section id="screen-wizard">
+      <ol id="steps">
+        <li data-step="credentials">Fetch Wi-Fi credentials from the server</li>
+        <li data-step="switch">Join the device's own Wi-Fi network</li>
+        <li data-step="configure">Send your Wi-Fi details to the device</li>
+        <li data-step="verify">Reconnect and confirm registration</li>
+      </ol>
+
+      <div id="panel-start">
+        <p class="hint">
+          Plug in the new WeMo device (or hold its button ~5s for a Wi-Fi reset on
+          an existing one) and wait for its light to blink.
+        </p>
+        <div class="button-row">
+          <button type="button" id="start-button">Start registration</button>
+        </div>
+      </div>
+
+      <div id="panel-switch" hidden>
+        <p>
+          Open your phone's <strong>Wi-Fi settings</strong> and join the device's own
+          network — it looks like <code>Wemo.Mini.123</code> or
+          <code>WeMo.Switch.ABC</code> and has no password.
+        </p>
+        <p class="hint">
+          If Android warns that the network has no internet access, choose
+          <strong>"Stay connected"</strong> — otherwise it will silently switch back and
+          the next step will fail.
+        </p>
+        <div class="button-row">
+          <button type="button" id="joined-button">I'm connected — continue</button>
+        </div>
+      </div>
+
+      <div id="panel-verify" hidden>
+        <p>
+          Now switch your phone's Wi-Fi <strong>back to your home network</strong>.
+          The device is joining it too; this can take a minute.
+        </p>
+        <div class="button-row">
+          <button type="button" id="back-home-button">I'm back — verify</button>
+        </div>
+      </div>
+
+      <div id="log"></div>
+
+      <div id="failure-actions" class="button-row" hidden>
+        <button type="button" id="retry-button">Retry</button>
+        <button type="button" id="back-button" class="secondary" hidden>Back a step</button>
+        <button type="button" id="reset-button" class="secondary">Start over</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="md5.js"></script>
+  <script src="wemo.js"></script>
+  <script src="wizard.js"></script>
+</body>
+</html>

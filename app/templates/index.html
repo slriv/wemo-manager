@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="table-toolbar">
+  <span class="status-line">
+    <span id="connection-status" class="conn-status conn-live">Live</span>
+    <span id="device-summary" class="device-summary"></span>
+  </span>
+  <div class="toolbar-actions">
+    <input type="search" id="device-search" class="device-search"
+           placeholder="Search devices" aria-label="Search devices">
+    <label class="sort-control" for="device-sort">
+      Sort
+      <select id="device-sort">
+        <option value="name:asc">Name A–Z</option>
+        <option value="name:desc">Name Z–A</option>
+        <option value="host:asc">Host</option>
+        <option value="last_seen_at:desc">Last seen</option>
+      </select>
+    </label>
+    <div class="dropdown">
+      <button type="button" class="secondary" id="network-filter-toggle">Network ▾</button>
+      <div id="network-filter-menu" class="dropdown-menu" hidden></div>
+    </div>
+    <div class="dropdown" id="column-picker-dropdown">
+      <button type="button" class="secondary" id="column-picker-toggle">Columns ▾</button>
+      <div id="column-picker-menu" class="dropdown-menu" hidden></div>
+    </div>
+  </div>
+</div>
+<div id="device-table"></div>
+<div id="device-grid" class="device-grid"></div>
+<div class="device-list-actions">
+  <button type="button" id="open-schedule-editor">Schedule</button>
+  <div class="device-list-actions-row">
+    <button id="detect-button">Detect</button>
+    <a class="btn secondary" href="/setup">Register</a>
+  </div>
+</div>
+<aside id="setup-summary" class="setup-summary" hidden>
+  <span><span class="setup-summary-label">Devices join</span> <code id="summary-ssid"></code></span>
+  <a href="/setup">Edit</a>
+</aside>
+<dialog id="schedule-editor-dialog" class="schedule-editor-dialog">
+  <div class="schedule-editor-header">
+    <div>
+      <h2>Weekly schedule</h2>
+      <p id="calendar-status">Loading cached schedules…</p>
+    </div>
+    <button type="button" class="secondary" id="close-schedule-editor">Close</button>
+  </div>
+  <div class="calendar-actions">
+    <button type="button" id="refresh-schedule-cache">Refresh from devices</button>
+  </div>
+  <div id="schedule-calendar" class="schedule-calendar"></div>
+  <aside id="calendar-event-detail" class="calendar-event-detail" hidden></aside>
+  <details class="schedule-storage-note">
+    <summary>How schedules are stored</summary>
+    <p>Schedules are stored in each WeMo device's rules database. This view uses cached, read-only snapshots. Sunrise and sunset schedules currently expose only stored times.</p>
+  </details>
+</dialog>
+
+<dialog id="detect-dialog">
+  <form id="detect-form" method="dialog">
+    <h2>Detect WeMo devices</h2>
+    <p class="field-note">
+      Enter a network in CIDR form (e.g. <code>192.168.1.0/24</code>) to scan, or a single
+      IP address to probe just one device.
+    </p>
+    <div class="field">
+      <label for="detect-target">Network / IP address</label>
+      <input type="text" id="detect-target" name="target" required>
+    </div>
+    <div class="field">
+      <label for="detect-timeout">Per-host probe timeout (seconds)</label>
+      <input type="number" id="detect-timeout" name="timeout" value="2.0" step="0.5" min="0.5">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="secondary" id="detect-cancel">Cancel</button>
+      <button type="submit">Scan</button>
+    </div>
+  </form>
+  <div id="detect-results"></div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

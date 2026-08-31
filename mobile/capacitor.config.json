@@ -1,0 +1,10 @@
+{
+  "appId": "com.slriv.wemomanager",
+  "appName": "WeMo Manager",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

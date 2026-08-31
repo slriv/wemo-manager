@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.name }} — WeMo Manager{% endblock %}
+
+{% block header_actions %}
+<a href="/" class="btn secondary">&larr; Back to devices</a>
+{% endblock %}
+
+{% set dimmer = 'Dimmer' in device.device_type %}
+{% set online = device.status.value == 'online' %}
+
+{% block content %}
+<div class="editor-header">
+  <input type="text" id="device-name-input" value="{{ device.name }}">
+  <button type="button" id="device-name-save">Save name</button>
+</div>
+
+<dl class="detail-grid">
+  <dt>Status</dt>
+  <dd>
+    <span class="status-badge">
+      <span class="status-dot status-{{ device.status.value }}"></span>
+      {{ device.status.value | capitalize }}
+    </span>
+  </dd>
+
+  <dt>Control</dt>
+  <dd>
+    <div class="control-cell">
+      <button type="button" id="device-toggle"
+              class="toggle-switch {{ 'toggle-on' if device.binary_state else 'toggle-off' }}"
+              {{ 'disabled' if not online else '' }}></button>
+      {% if dimmer %}
+      <input type="range" id="device-brightness" min="1" max="100"
+             value="{{ device.brightness or 1 }}" class="brightness-slider"
+             {{ 'disabled' if not online else '' }}>
+      <span class="brightness-label" id="device-brightness-label">{{ device.brightness or 1 }}%</span>
+      {% endif %}
+    </div>
+  </dd>
+
+  {% if dimmer %}
+  <dt>Brightness</dt>
+  <dd>{{ device.brightness if device.brightness is not none else "—" }}%</dd>
+  {% endif %}
+
+  <dt>Host</dt>
+  <dd>{{ device.host }}:{{ device.port }}</dd>
+
+  <dt>Setup URL</dt>
+  <dd>{{ device.setup_url }}</dd>
+
+  <dt>UDN</dt>
+  <dd>{{ device.udn }}</dd>
+
+  <dt>Device type</dt>
+  <dd>{{ device.device_type }}</dd>
+
+  <dt>Manufacturer</dt>
+  <dd>{{ device.manufacturer }}</dd>
+
+  <dt>Model</dt>
+  <dd>{{ device.model }}</dd>
+
+  <dt>Model name</dt>
+  <dd>{{ device.model_name }}</dd>
+
+  <dt>Serial number</dt>
+  <dd>{{ device.serial_number }}</dd>
+
+  <dt>Firmware version</dt>
+  <dd>{{ device.firmware_version }}</dd>
+
+  <dt>MAC address</dt>
+  <dd>{{ device.mac }}</dd>
+
+  <dt>Last seen</dt>
+  <dd>{{ device.last_seen_at or "—" }}</dd>
+
+  <dt>Last error</dt>
+  <dd>{{ device.last_error or "—" }}</dd>
+
+  <dt>Added</dt>
+  <dd>{{ device.created_at }}</dd>
+
+  <dt>Last updated</dt>
+  <dd>{{ device.updated_at }}</dd>
+</dl>
+
+<section class="rules-summary-section">
+  <h2>Rules</h2>
+  <p>Read-only summary of the schedules stored on this device.</p>
+  <button type="button" class="secondary" id="load-rules-summary-button">Load rules summary</button>
+  <div id="rules-summary-output" hidden></div>
+</section>
+
+<details class="advanced-section">
+  <summary>Advanced</summary>
+  <dl class="detail-grid">
+    <dt>Database ID</dt>
+    <dd>{{ device.id }}</dd>
+
+    <dt>Port</dt>
+    <dd>{{ device.port }}</dd>
+
+    <dt>Raw binary state</dt>
+    <dd>{{ device.binary_state if device.binary_state is not none else "—" }}</dd>
+
+    <dt>Image URL</dt>
+    <dd>{{ device.image_url or "—" }}</dd>
+  </dl>
+
+  <div class="rules-dump">
+    <button type="button" class="secondary" id="load-rules-button">Load on-device rules data</button>
+    <pre id="rules-output" hidden></pre>
+  </div>
+</details>
+
+<div class="danger-zone">
+  <h3>Danger zone</h3>
+  <div class="dialog-actions" style="justify-content: flex-start;">
+    <button type="button" class="danger" id="reset-button">Reset device</button>
+    <button type="button" class="danger" id="factory-reset-button">Factory reset</button>
+  </div>
+</div>
+
+<dialog id="reset-dialog">
+  <h2>Reset this device?</h2>
+  <p class="field-note">
+    Clears this device's name, icon, and on-device schedules/rules (WeMo app "Rules").
+    It stays on your WiFi. This cannot be undone.
+  </p>
+  <div class="dialog-actions">
+    <button type="button" class="secondary" id="reset-cancel">Cancel</button>
+    <button type="button" class="danger" id="reset-confirm">Reset</button>
+  </div>
+</dialog>
+
+<dialog id="factory-reset-dialog">
+  <h2>Factory reset this device?</h2>
+  <p class="field-note">
+    Clears this device's name, icon, and on-device schedules/rules, AND its WiFi
+    credentials — it will disconnect from your network immediately and go back
+    into its own out-of-box setup mode. You'll need to reconnect it to WiFi
+    (same as a brand-new device) before wemo-manager can reach it again. This
+    cannot be undone.
+  </p>
+  <div class="dialog-actions">
+    <button type="button" class="secondary" id="factory-reset-cancel">Cancel</button>
+    <button type="button" class="danger" id="factory-reset-confirm">Factory reset</button>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const DEVICE_ID = {{ device.id }};
+
+  document.getElementById("device-name-save").addEventListener("click", async () => {
+    const name = document.getElementById("device-name-input").value.trim();
+    if (!name) return;
+    const res = await fetch(`/api/devices/${DEVICE_ID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) document.title = `${name} — WeMo Manager`;
+  });
+
+  async function setDeviceState(body) {
+    await fetch(`/api/devices/${DEVICE_ID}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  const toggle = document.getElementById("device-toggle");
+  toggle.addEventListener("click", () => {
+    const isOn = toggle.classList.contains("toggle-on");
+    toggle.classList.toggle("toggle-on", !isOn);
+    toggle.classList.toggle("toggle-off", isOn);
+    setDeviceState({ on: !isOn });
+  });
+
+  const brightness = document.getElementById("device-brightness");
+  if (brightness) {
+    const label = document.getElementById("device-brightness-label");
+    brightness.addEventListener("input", () => {
+      label.textContent = `${brightness.value}%`;
+    });
+    brightness.addEventListener("change", () => {
+      setDeviceState({ level: parseInt(brightness.value, 10) });
+    });
+  }
+
+  function wireResetDialog(buttonId, dialogId, cancelId, confirmId, body) {
+    const dialog = document.getElementById(dialogId);
+    document.getElementById(buttonId).addEventListener("click", () => dialog.showModal());
+    document.getElementById(cancelId).addEventListener("click", () => dialog.close());
+    document.getElementById(confirmId).addEventListener("click", async () => {
+      dialog.close();
+      try {
+        await fetch(`/api/devices/${DEVICE_ID}/reset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        console.error("Failed to reset device", err);
+      }
+    });
+  }
+
+  wireResetDialog("reset-button", "reset-dialog", "reset-cancel", "reset-confirm", {
+    data: true,
+    wifi: false,
+  });
+  wireResetDialog(
+    "factory-reset-button",
+    "factory-reset-dialog",
+    "factory-reset-cancel",
+    "factory-reset-confirm",
+    { data: true, wifi: true }
+  );
+
+  document.getElementById("load-rules-summary-button").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const output = document.getElementById("rules-summary-output");
+    button.disabled = true;
+    button.textContent = "Loading…";
+    output.hidden = false;
+    output.replaceChildren();
+    try {
+      const res = await fetch(`/api/devices/${DEVICE_ID}/rules/summary`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ?? res.statusText);
+      const rules = data.rules;
+      if (rules.length === 0) {
+        output.textContent = "No rules are stored on this device.";
+        return;
+      }
+      if (data.cached) {
+        const notice = document.createElement("p");
+        notice.className = "rule-note";
+        notice.textContent = `Showing cached rules from ${new Date(data.fetched_at).toLocaleString()}.`;
+        output.appendChild(notice);
+      }
+      rules.forEach((rule) => {
+        const item = document.createElement("article");
+        item.className = "rule-summary";
+        const title = document.createElement("h3");
+        title.textContent = rule.name;
+        const state = document.createElement("span");
+        state.className = `rule-state ${rule.enabled ? "rule-enabled" : "rule-disabled"}`;
+        state.textContent = rule.enabled ? "Enabled" : "Disabled";
+        title.append(" ", state);
+        const details = document.createElement("p");
+        details.textContent = `${rule.type} · ${rule.days} · ${rule.start.action} at ${rule.start.times}, ${rule.end.action} at ${rule.end.times}`;
+        const targets = document.createElement("p");
+        targets.textContent = `Targets: ${rule.targets.join(", ") || "None recorded"}`;
+        item.append(title, details, targets);
+        rule.notes.forEach((note) => {
+          const noteElement = document.createElement("p");
+          noteElement.className = "rule-note";
+          noteElement.textContent = note;
+          item.appendChild(noteElement);
+        });
+        output.appendChild(item);
+      });
+    } catch (err) {
+      output.textContent = `Error: ${err}`;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Reload rules summary";
+    }
+  });
+
+  document.getElementById("load-rules-button").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const output = document.getElementById("rules-output");
+    button.disabled = true;
+    button.textContent = "Loading…";
+    output.hidden = false;
+    try {
+      const res = await fetch(`/api/devices/${DEVICE_ID}/rules`);
+      const data = await res.json();
+      output.textContent = res.ok ? JSON.stringify(data, null, 2) : `Error: ${data.detail ?? res.statusText}`;
+    } catch (err) {
+      output.textContent = `Error: ${err}`;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Load on-device rules data";
+    }
+  });
+</script>
+{% endblock %}

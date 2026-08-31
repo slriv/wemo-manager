@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Setup — WeMo Manager{% endblock %}
+
+{% block header_actions %}
+<a href="/" class="btn secondary">&larr; Back to devices</a>
+{% endblock %}
+
+{% block content %}
+<section class="setup-page">
+  <h2>Register a new device</h2>
+  <p class="field-note">
+    Save the Wi-Fi credentials new devices should join, install the Android app,
+    then use it while connected to the reset device's Wi-Fi network.
+  </p>
+
+  <form id="setup-form">
+    <div class="field">
+      <label for="wifi-ssid">Home Wi-Fi network (SSID)</label>
+      <input type="text" id="wifi-ssid" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="wifi-password">Wi-Fi password</label>
+      <div class="secret-field">
+        <input type="password" id="wifi-password" autocomplete="off">
+        <button type="button" class="secondary" data-reveal="wifi-password">Reveal</button>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="submit">Save</button>
+      <span id="save-status" class="field-note"></span>
+    </div>
+  </form>
+
+  <h2>Install the Android app</h2>
+  <div id="apk-section">
+    <p id="apk-missing" class="field-note" hidden>
+      No APK has been built yet. Run <code>make apk</code> on a machine with the
+      Android SDK, then reload this page.
+    </p>
+    <div id="apk-available" hidden>
+      <p class="field-note">
+        Download the APK, then allow installation. In the app, enter this server's
+        hostname or IP: <code id="server-host">—</code>
+      </p>
+      <p><a id="apk-link" href="/api/setup/apk">Download wemo-manager.apk</a></p>
+    </div>
+  </div>
+
+  <h2>Complete registration</h2>
+  <ol class="setup-steps">
+    <li>Join the reset device's <code>WeMo.*</code> Wi-Fi network.</li>
+    <li>Use the Android app to send the saved Wi-Fi credentials.</li>
+    <li>Return here and use <a href="/">Detect devices…</a> to scan for it.</li>
+  </ol>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/setup.js"></script>
+{% endblock %}

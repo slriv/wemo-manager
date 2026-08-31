@@ -1,0 +1,13 @@
+.git/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+logs/
+run/
+wemo_manager.db
+wemo_manager.lock
+tests/
+docs/
+app/static/*.apk

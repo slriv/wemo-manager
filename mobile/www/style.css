@@ -1,0 +1,130 @@
+:root {
+  --bg: #1e1e1e;
+  --fg: #eaeaea;
+  --muted: #8a8a8a;
+  --accent: #3a86ff;
+  --error: #e5484d;
+  --success: #46a758;
+  --warn: #d4a72c;
+}
+
+* { box-sizing: border-box; }
+
+/* The flex rules below would otherwise defeat the hidden attribute. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  border-bottom: 1px solid #333;
+}
+
+header h1 { font-size: 1.1rem; margin: 0; }
+
+main { padding: 1rem; max-width: 28rem; margin: 0 auto; }
+
+.hint { color: var(--muted); font-size: 0.85rem; }
+
+.field { margin-bottom: 1rem; }
+.field label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.25rem; }
+.field input {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  background: #2a2a2a;
+  color: var(--fg);
+  border: 1px solid #444;
+  border-radius: 6px;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 1.2rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.5; }
+
+button.secondary {
+  background: transparent;
+  border-color: #444;
+  color: var(--fg);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.button-row button { flex: 1 1 12rem; }
+
+#settings-panel {
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+#settings-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin: -0.75rem -1rem;
+  padding: 0.75rem 1rem;
+}
+
+#settings-panel[open] summary { margin-bottom: 0.5rem; }
+
+#steps { padding-left: 1.4rem; margin: 0 0 1rem; }
+#steps li { color: var(--muted); margin: 0.35rem 0; font-size: 0.9rem; }
+#steps li.active { color: var(--fg); font-weight: 600; }
+#steps li.done { color: var(--success); }
+#steps li.failed { color: var(--error); font-weight: 600; }
+
+#log { margin-top: 1rem; font-size: 0.9rem; }
+#log p { margin: 0.3rem 0; }
+.log-info { color: var(--muted); }
+.log-warn { color: var(--warn); }
+.log-error { color: var(--error); }
+.log-success { color: var(--success); font-weight: 600; }
+
+.log-detail { margin: 0.4rem 0 0.6rem; }
+.log-detail summary { color: var(--muted); font-size: 0.8rem; cursor: pointer; }
+.log-detail pre {
+  margin: 0.4rem 0 0;
+  padding: 0.6rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  max-height: 16rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+code {
+  background: #2a2a2a;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}

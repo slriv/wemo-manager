@@ -147,6 +147,7 @@ is dropped and recreated.
 | `GET` | `/api/setup/config` | Wi-Fi settings, APK availability, server address |
 | `PUT` | `/api/setup/config` | Store Wi-Fi settings |
 | `GET` | `/api/setup/apk` | Download the Android app |
+| `POST` | `/api/setup/logs` | Write a diagnostic log blob from the mobile app to the server log |
 
 ## Android app
 

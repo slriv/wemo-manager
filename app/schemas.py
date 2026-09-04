@@ -114,3 +114,7 @@ class SetupConfigUpdate(BaseModel):
 
     wifi_ssid: str | None = None
     wifi_password: str | None = None
+
+
+class SetupLogUpload(BaseModel):
+    text: str

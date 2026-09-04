@@ -4,6 +4,22 @@
 const settingsPanel = document.getElementById("settings-panel");
 const settingsStatus = document.getElementById("settings-status");
 const serverHostInput = document.getElementById("server-host");
+const sendLogButton = document.getElementById("send-log-button");
+const logSendStatus = document.getElementById("log-send-status");
+
+const wifiSsidInput = document.getElementById("wifi-ssid");
+const wifiPasswordInput = document.getElementById("wifi-password");
+const wifiSsidSource = document.getElementById("wifi-ssid-source");
+const wifiPasswordSource = document.getElementById("wifi-password-source");
+
+document.querySelectorAll("[data-reveal]").forEach((button) => {
+  const input = document.getElementById(button.dataset.reveal);
+  button.addEventListener("click", () => {
+    const revealed = input.type === "text";
+    input.type = revealed ? "password" : "text";
+    button.textContent = revealed ? "Reveal" : "Hide";
+  });
+});
 
 const panels = {
   start: document.getElementById("panel-start"),
@@ -24,6 +40,8 @@ const state = {
 
 const SERVER_PORT = 8000;
 const CREDENTIALS_KEY = "credentials";
+const LOG_KEY = "wemo-setup-log";
+let logBuffer = [];
 
 function serverHost() {
   return localStorage.getItem("serverHost") || "";
@@ -42,12 +60,19 @@ function showPanel(name) {
   Object.entries(panels).forEach(([key, el]) => (el.hidden = key !== name));
 }
 
+function persistLog() {
+  localStorage.setItem(LOG_KEY, logBuffer.join("\n"));
+  updateSendLogButton();
+}
+
 function log(message, kind = "info") {
   const line = document.createElement("p");
   line.className = `log-${kind}`;
   line.textContent = message;
   logElement.appendChild(line);
   line.scrollIntoView();
+  logBuffer.push(message);
+  persistLog();
 }
 
 function logDetail(detail) {
@@ -61,11 +86,12 @@ function logDetail(detail) {
   block.append(summary, pre);
   logElement.appendChild(block);
   block.scrollIntoView();
+  logBuffer.push(detail);
+  persistLog();
 }
 
-function markStep(stepName, stateClass) {
-  const item = document.querySelector(`#steps li[data-step="${stepName}"]`);
-  item.className = stateClass;
+function updateSendLogButton() {
+  sendLogButton.disabled = !(localStorage.getItem(LOG_KEY) && serverHost());
 }
 
 function hideFailureActions() {
@@ -75,7 +101,6 @@ function hideFailureActions() {
 }
 
 function fail(error, recovery) {
-  markStep(recovery.step, "failed");
   log(error.message || String(error), "error");
   logDetail(error.detail);
   showPanel(null);
@@ -102,8 +127,7 @@ async function serverRequest(path, options = {}) {
   const host = serverHost();
   const method = options.method || "GET";
   if (!host) {
-    settingsPanel.open = true;
-    throw new Error("Set the server host under Server settings first.");
+    throw new Error("No server host is set.");
   }
   const base = `http://${host}:${SERVER_PORT}`;
   const response = await httpRequest({
@@ -129,23 +153,6 @@ async function serverRequest(path, options = {}) {
   return body;
 }
 
-async function fetchCredentials() {
-  // Failing fast here falls back to the cached credentials.
-  const config = await serverRequest("/api/setup/config", { timeoutMs: 5000 });
-  if (config.server_host && config.server_host !== serverHost()) {
-    localStorage.setItem("serverHost", config.server_host);
-    serverHostInput.value = config.server_host;
-  }
-  if (!config.wifi_ssid) {
-    throw new Error("No Wi-Fi network saved on the server — set one on its Setup page.");
-  }
-  const credentials = { ssid: config.wifi_ssid, password: config.wifi_password, host: serverHost() };
-  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
-  return credentials;
-}
-
-// Credentials are cached per server host, so switching hosts triggers a
-// refetch but re-running the wizard against the same server does not.
 function savedCredentials() {
   try {
     return JSON.parse(localStorage.getItem(CREDENTIALS_KEY));
@@ -154,42 +161,43 @@ function savedCredentials() {
   }
 }
 
-function cachedCredentialsForCurrentHost() {
+function setCredentialSource(text) {
+  wifiSsidSource.textContent = text;
+  wifiPasswordSource.textContent = text;
+}
+
+// Fills the Wi-Fi fields per precedence: saved credentials, then a
+// best-effort server fetch (only if a host is set), else left blank.
+async function prefillCredentials() {
   const cached = savedCredentials();
-  return cached && cached.host === serverHost() ? cached : null;
-}
-
-// Wizard steps.
-
-async function stepCredentials() {
-  markStep("credentials", "active");
-  const cached = cachedCredentialsForCurrentHost();
-  if (cached) {
-    state.credentials = cached;
-    log(`Using saved credentials for "${state.credentials.ssid}".`);
-  } else {
-    log("Fetching Wi-Fi credentials from the server…");
-    try {
-      state.credentials = await fetchCredentials();
-      log(`Got credentials for "${state.credentials.ssid}".`);
-    } catch (error) {
-      state.credentials = savedCredentials();
-      if (!state.credentials) {
-        throw error;
-      }
-      log(`${error.message}`, "warn");
-      log(`Using saved credentials for "${state.credentials.ssid}" (from a different server).`);
-      logDetail(error.detail);
-    }
+  if (cached && (cached.ssid || cached.password)) {
+    wifiSsidInput.value = cached.ssid || "";
+    wifiPasswordInput.value = cached.password || "";
+    setCredentialSource("Saved");
+    return;
   }
-  markStep("credentials", "done");
-  markStep("switch", "active");
-  showPanel("switch");
+  if (!serverHost()) return;
+  try {
+    const config = await serverRequest("/api/setup/config", { timeoutMs: 5000 });
+    if (config.wifi_ssid) {
+      wifiSsidInput.value = config.wifi_ssid;
+      wifiPasswordInput.value = config.wifi_password || "";
+      setCredentialSource("From server");
+    }
+  } catch {
+    // Best-effort — leave the fields blank.
+  }
 }
+
+// Editing a field means the user is overriding whatever it was prefilled with.
+wifiSsidInput.addEventListener("input", () => setCredentialSource(""));
+wifiPasswordInput.addEventListener("input", () => setCredentialSource(""));
+
+// Wizard steps. Credential resolution happens by simply reading the fields
+// at start time — the fields already hold typed/saved/server-fetched values
+// in that order of precedence, so there is no separate resolution step.
 
 async function stepConfigure() {
-  markStep("switch", "done");
-  markStep("configure", "active");
   showPanel(null);
   log("Looking for the device at 10.22.22.1…");
   state.device = await findSetupDevice();
@@ -212,19 +220,33 @@ async function stepConfigure() {
       result.detail
     );
   }
-  if (result.status === "1") {
-    log("Device reports it joined your network.");
+  if (result.status === "1" && result.closeStatus === "success") {
+    log("Device reports it joined your network and setup closed cleanly.");
+  } else if (result.status === "1") {
+    log(
+      `Device reports it joined your network, but setup didn't close cleanly `
+        + `(CloseSetup: ${result.closeStatus}) — it may not stick. Verifying anyway.`,
+      "warn"
+    );
+    logDetail(result.detail);
   } else {
     log(`Device reports: ${result.label}. It may still join within a minute.`, "warn");
     logDetail(result.detail);
   }
-  markStep("configure", "done");
-  markStep("verify", "active");
+
+  if (!serverHost()) {
+    log(
+      "No server host is set, so registration can't be confirmed automatically. "
+        + "Once the device is reachable on your network, register it from the web UI.",
+      "success"
+    );
+    failureActions.hidden = false;
+    return;
+  }
   showPanel("verify");
 }
 
 async function stepVerify() {
-  markStep("verify", "active");
   showPanel(null);
   log("Checking with the server (this scans your network; give it a minute)…");
   const { network } = await serverRequest("/api/devices/default-network");
@@ -242,7 +264,6 @@ async function stepVerify() {
         method: "POST",
         data: { udns: [found.udn] },
       });
-      markStep("verify", "done");
       log(`Registered "${found.name}" at ${found.host}. All done!`, "success");
       failureActions.hidden = false;
       return;
@@ -261,24 +282,13 @@ async function stepVerify() {
 
 // Step runners, each retryable in place.
 
-function runCredentials() {
-  return attempt(stepCredentials, {
-    step: "credentials",
-    retryLabel: "Retry fetching credentials",
-    retry: runCredentials,
-  });
-}
-
 function runConfigure() {
   return attempt(stepConfigure, {
-    step: "configure",
     retryLabel: "Retry sending Wi-Fi details",
     retry: runConfigure,
     backLabel: "I'm not on the device's Wi-Fi yet",
     back: () => {
       hideFailureActions();
-      markStep("configure", "");
-      markStep("switch", "active");
       showPanel("switch");
     },
   });
@@ -286,13 +296,11 @@ function runConfigure() {
 
 function runVerify() {
   return attempt(stepVerify, {
-    step: "verify",
     retryLabel: "Retry verification",
     retry: runVerify,
     backLabel: "Re-send Wi-Fi details to the device",
     back: () => {
       hideFailureActions();
-      markStep("verify", "");
       runConfigure();
     },
   });
@@ -304,27 +312,57 @@ document.getElementById("settings-save").addEventListener("click", async () => {
   const typed = normalizeHost(serverHostInput.value);
   serverHostInput.value = typed;
   localStorage.setItem("serverHost", typed);
+  updateSendLogButton();
+  if (!typed) {
+    settingsStatus.textContent = "Server host cleared.";
+    return;
+  }
   settingsStatus.textContent = "Checking…";
   try {
-    const credentials = await fetchCredentials();
-    const resolved = serverHost();
-    settingsStatus.textContent =
-      resolved === typed
-        ? `Connected. Server has credentials for "${credentials.ssid}".`
-        : `Connected as ${resolved}. Server has credentials for "${credentials.ssid}".`;
+    const config = await serverRequest("/api/setup/config", { timeoutMs: 5000 });
+    settingsStatus.textContent = config.wifi_ssid
+      ? `Connected. Server has credentials for "${config.wifi_ssid}".`
+      : "Connected. No Wi-Fi network saved on the server yet.";
+    if (!wifiSsidInput.value && !wifiPasswordInput.value && config.wifi_ssid) {
+      wifiSsidInput.value = config.wifi_ssid;
+      wifiPasswordInput.value = config.wifi_password || "";
+      setCredentialSource("From server");
+    }
     settingsPanel.open = false;
   } catch (error) {
     settingsStatus.textContent = error.message;
   }
 });
 
+sendLogButton.addEventListener("click", async () => {
+  logSendStatus.textContent = "Sending…";
+  try {
+    await serverRequest("/api/setup/logs", { data: { text: localStorage.getItem(LOG_KEY) || "" }, method: "POST" });
+    logSendStatus.textContent = "Log sent.";
+  } catch (error) {
+    logSendStatus.textContent = error.message;
+  }
+});
+
 // Event handlers.
 
 document.getElementById("start-button").addEventListener("click", () => {
+  const ssid = wifiSsidInput.value.trim();
+  const password = wifiPasswordInput.value;
+  if (!ssid) {
+    wifiSsidInput.focus();
+    return;
+  }
   logElement.replaceChildren();
+  logBuffer = [];
+  persistLog();
+  hideFailureActions();
+  state.credentials = { ssid, password, host: serverHost() };
   state.device = null;
   state.ap = null;
-  runCredentials();
+  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(state.credentials));
+  log(`Using Wi-Fi network "${ssid}".`);
+  showPanel("switch");
 });
 
 document.getElementById("joined-button").addEventListener("click", runConfigure);
@@ -333,4 +371,6 @@ resetButton.addEventListener("click", () => window.location.reload());
 
 serverHostInput.value = serverHost();
 settingsPanel.open = !serverHost();
+updateSendLogButton();
+prefillCredentials();
 showPanel("start");

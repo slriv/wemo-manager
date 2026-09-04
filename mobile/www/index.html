@@ -26,23 +26,31 @@
       </div>
       <div class="button-row">
         <button type="button" id="settings-save">Save and test</button>
+        <button type="button" id="send-log-button">Send diagnostic log</button>
       </div>
       <p id="settings-status" class="hint"></p>
+      <p id="log-send-status" class="hint"></p>
     </details>
 
     <section id="screen-wizard">
-      <ol id="steps">
-        <li data-step="credentials">Fetch Wi-Fi credentials from the server</li>
-        <li data-step="switch">Join the device's own Wi-Fi network</li>
-        <li data-step="configure">Send your Wi-Fi details to the device</li>
-        <li data-step="verify">Reconnect and confirm registration</li>
-      </ol>
-
       <div id="panel-start">
         <p class="hint">
           Plug in the new WeMo device (or hold its button ~5s for a Wi-Fi reset on
           an existing one) and wait for its light to blink.
         </p>
+        <div class="field">
+          <label for="wifi-ssid">Wi-Fi network name (SSID)</label>
+          <input type="text" id="wifi-ssid" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <p id="wifi-ssid-source" class="field-source"></p>
+        </div>
+        <div class="field">
+          <label for="wifi-password">Wi-Fi password</label>
+          <div class="secret-field">
+            <input type="password" id="wifi-password" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="secondary" data-reveal="wifi-password">Reveal</button>
+          </div>
+          <p id="wifi-password-source" class="field-source"></p>
+        </div>
         <div class="button-row">
           <button type="button" id="start-button">Start registration</button>
         </div>

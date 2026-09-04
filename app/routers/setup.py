@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..schemas import SetupConfigRead, SetupConfigUpdate
+from ..schemas import SetupConfigRead, SetupConfigUpdate, SetupLogUpload
 from ..services import settings
 from ..services.discovery import local_ipv4_for
 
@@ -42,6 +43,13 @@ def update_config(
     if payload.wifi_password is not None:
         settings.set_setting(db, settings.WIFI_PASSWORD, payload.wifi_password)
     return get_config(request, db)
+
+
+@router.post("/logs")
+def upload_logs(payload: SetupLogUpload) -> dict[str, str]:
+    """Persist a diagnostic log blob via the app's rotating file handler."""
+    logging.getLogger("mobile_wizard").info(payload.text)
+    return {"status": "ok"}
 
 
 @router.get("/apk")

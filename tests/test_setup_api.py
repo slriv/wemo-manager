@@ -102,6 +102,13 @@ def test_config_partial_update_keeps_other_fields(client):
     assert config["wifi_password"] == "hunter22"
 
 
+def test_upload_logs_writes_to_logger(client, caplog):
+    with caplog.at_level("INFO", logger="mobile_wizard"):
+        response = client.post("/api/setup/logs", json={"text": "wizard diagnostic line"})
+    assert response.json() == {"status": "ok"}
+    assert "wizard diagnostic line" in caplog.text
+
+
 def test_apk_path_honors_env_override(monkeypatch, tmp_path):
     override = tmp_path / "wemo-manager.apk"
     monkeypatch.setenv("WEMO_MANAGER_APK_PATH", str(override))

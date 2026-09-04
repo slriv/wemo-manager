@@ -8,6 +8,7 @@ const METHOD2_KEY_SUFFIX = "b3{8t;80dIN{ra83eC1s?M70?683@2Yf";
 
 // Other codes have no confirmed meaning and are reported verbatim.
 const NETWORK_STATUS_LABELS = {
+  "0": "still connecting",
   "1": "connected",
   "2": "password rejected as too short",
   "3": "still connecting",
@@ -295,16 +296,35 @@ async function connectDeviceToHome(device, ssid, password, ap, onProgress) {
     polled.push(status);
   }
 
+  let closeStatus;
   try {
-    await soapCall(device.baseUrl, "WiFiSetup", "CloseSetup");
-  } catch {
-    // CloseSetup is optional.
+    const doc = await soapCall(device.baseUrl, "WiFiSetup", "CloseSetup");
+    closeStatus = xmlText(doc, "status") || "(no status in response)";
+  } catch (error) {
+    closeStatus = `failed: ${error.message}`;
   }
+
+  // Without this, the device can report a successful join but never fully
+  // commit it or leave setup mode — it "accepts" the credentials but the
+  // connection doesn't stick.
+  let setupDoneStatus = "(not attempted — status/close didn't indicate success)";
+  if (status === "1" && closeStatus === "success") {
+    try {
+      await soapCall(device.baseUrl, "basicevent", "SetSetupDoneStatus");
+      setupDoneStatus = "sent";
+    } catch (error) {
+      setupDoneStatus = `failed: ${error.message}`;
+    }
+  }
+
   return {
     status,
+    closeStatus,
     label: NETWORK_STATUS_LABELS[status] || `unrecognized status code "${status}"`,
     detail:
       `ssid: ${ssid}\nauth: ${auth}\nencryption: ${ap.encryption}\nchannel: ${ap.channel}\n`
-      + `GetNetworkStatus poll sequence: ${polled.join(" → ") || "(no reply)"}`,
+      + `GetNetworkStatus poll sequence: ${polled.join(" → ") || "(no reply)"}\n`
+      + `CloseSetup status: ${closeStatus}\n`
+      + `SetSetupDoneStatus: ${setupDoneStatus}`,
   };
 }

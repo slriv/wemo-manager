@@ -712,13 +712,22 @@ const detectDialog = document.getElementById("detect-dialog");
 const detectForm = document.getElementById("detect-form");
 const detectResults = document.getElementById("detect-results");
 const detectTargetInput = document.getElementById("detect-target");
+const DETECT_TARGET_KEY = "wemo-manager:detect-target";
 
 async function openDetectDialog() {
   detectResults.innerHTML = "";
   try {
     const res = await fetch("/api/devices/default-network");
     const data = await res.json();
-    detectTargetInput.value = data.network;
+    let lastTarget = "";
+    try {
+      lastTarget = localStorage.getItem(DETECT_TARGET_KEY) || "";
+    } catch {
+      // Ignore unavailable storage.
+    }
+    detectTargetInput.value = lastTarget || data.network;
+    document.getElementById("detect-current-network").textContent =
+      `Current network: ${data.network} (mask ${data.netmask})`;
   } catch (err) {
     console.error("Failed to fetch default network", err);
   }
@@ -772,7 +781,12 @@ function renderDetectResults(devices) {
 detectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const target = detectTargetInput.value.trim();
-  const timeout = parseFloat(document.getElementById("detect-timeout").value) || 2.0;
+  const timeout = parseFloat(document.getElementById("detect-timeout").value) || 0.5;
+  try {
+    localStorage.setItem(DETECT_TARGET_KEY, target);
+  } catch {
+    // Ignore unavailable storage.
+  }
   detectResults.innerHTML = "<p>Scanning…</p>";
   try {
     const res = await fetch("/api/devices/detect", {

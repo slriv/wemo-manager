@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -65,8 +66,9 @@ def list_devices(db: Session = Depends(get_db)) -> list[DeviceRead]:
 
 @router.get("/default-network")
 def get_default_network() -> dict[str, str]:
-    """Return this host's best-guess active IPv4 CIDR."""
-    return {"network": default_network()}
+    """Return this host's best-guess active IPv4 CIDR and its dotted-decimal netmask."""
+    cidr = default_network()
+    return {"network": cidr, "netmask": str(ipaddress.ip_network(cidr).netmask)}
 
 
 @router.get("/events")

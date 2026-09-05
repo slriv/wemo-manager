@@ -130,7 +130,7 @@ is dropped and recreated.
 | `GET` | `/devices/{id}` | Device detail page |
 | `GET` | `/api/devices` | List devices |
 | `GET` | `/api/devices/events` | Server-sent event stream of table changes |
-| `GET` | `/api/devices/default-network` | Active IPv4 CIDR of the host |
+| `GET` | `/api/devices/default-network` | Active IPv4 CIDR and netmask of the host |
 | `POST` | `/api/devices/detect` | Scan a CIDR or IP address |
 | `POST` | `/api/devices/detect/commit` | Persist chosen results from the last scan |
 | `POST` | `/api/devices/all-off` | Turn off all, or a given subset of, devices |

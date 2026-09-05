@@ -70,10 +70,11 @@
     <div class="field">
       <label for="detect-target">Network / IP address</label>
       <input type="text" id="detect-target" name="target" required>
+      <p id="detect-current-network" class="field-note"></p>
     </div>
     <div class="field">
       <label for="detect-timeout">Per-host probe timeout (seconds)</label>
-      <input type="number" id="detect-timeout" name="timeout" value="2.0" step="0.5" min="0.5">
+      <input type="number" id="detect-timeout" name="timeout" value="0.5" step="0.5" min="0.5">
     </div>
     <div class="dialog-actions">
       <button type="button" class="secondary" id="detect-cancel">Cancel</button>

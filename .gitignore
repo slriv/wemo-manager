@@ -13,4 +13,4 @@ run/
 wemo_manager.lock
 .env.local
 app/static/wemo-manager.apk
-
+wemo-manager-deploy
